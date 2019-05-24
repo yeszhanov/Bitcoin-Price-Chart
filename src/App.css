@@ -32,7 +32,9 @@
   align-items: center;
   margin: 0 auto;
 }
-
+text {
+  fill: red;
+}
 .select-date {
   margin-bottom: 15px;
 }
@@ -42,7 +44,7 @@
 path {
   stroke: blue;
   stroke-width: 2px;
-  fill: none;
+  /* fill: none; */
 }
 
 @keyframes App-logo-spin {
