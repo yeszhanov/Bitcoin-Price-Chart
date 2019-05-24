@@ -33,6 +33,12 @@
   margin: 0 auto;
 }
 
+.select-date {
+  margin-bottom: 15px;
+}
+.date-input {
+  margin-right: 15px;
+}
 path {
   stroke: blue;
   stroke-width: 2px;

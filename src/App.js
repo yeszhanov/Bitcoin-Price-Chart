@@ -1,17 +1,26 @@
 import React, { Component } from "react"
 import * as d3 from "d3"
-
+// import LineChart from "./components/lineChart"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import moment from "moment"
 import "./App.css"
 
 class App extends Component {
   state = {
     data: null,
+    startDate: new Date("2019-05-15"),
+    endDate: new Date(),
+    isDateChanged: false,
   }
 
   async getData() {
+    const { startDate, endDate } = this.state
+    let startTime = moment(startDate).format("YYYY-MM-DD")
+    let endTime = moment(endDate).format("YYYY-MM-DD")
     try {
       const response = await fetch(
-        "https://api.coindesk.com/v1/bpi/historical/close.json?start=2017-12-31&end=2018-04-01",
+        `https://api.coindesk.com/v1/bpi/historical/close.json?start=${startTime}&end=${endTime}`,
       )
       const json = await response.json()
       this.parseData(json)
@@ -19,7 +28,17 @@ class App extends Component {
       console.log(error)
     }
   }
-
+  handleChange(date, type) {
+    if (type === "startDate") {
+      this.setState({
+        startDate: date,
+      })
+    } else {
+      this.setState({
+        endDate: date,
+      })
+    }
+  }
   parseData(data) {
     var arr = []
     for (let i in data.bpi) {
@@ -31,6 +50,54 @@ class App extends Component {
     this.setState({
       data: arr,
     })
+  }
+
+  displayBarChart(data) {
+    const svg = d3
+      .select(".canvas")
+      .append("svg")
+      .attr("height", 600)
+      .attr("width", 600)
+
+    const margin = { top: 20, right: 20, bottom: 100, left: 100 }
+
+    const graphWidth = 600 - margin.left - margin.right
+    const graphHeight = 600 - margin.top - margin.bottom
+
+    const graph = svg
+      .append("g")
+      .attr("width", graphWidth)
+      .attr("height", graphHeight)
+      .attr("transform", `translate(${margin.left}, ${margin.top})`)
+    const xAxisGroup = graph
+      .append("g")
+      .attr("transform", `translate(0,${graphHeight})`)
+    const yAxisGroup = graph.append("g")
+    const max = d3.max(data, d => d.price)
+    const y = d3
+      .scaleLinear()
+      .domain([0, max])
+      .range([graphHeight, 0])
+
+    const x = d3
+      .scaleBand()
+      .domain(data.map(item => item.date))
+      .range([0, 500])
+      .paddingInner(0.2)
+      .paddingOuter(0.2)
+    const rects = graph.selectAll("rect").data(data)
+    rects
+      .enter()
+      .append("rect")
+      .attr("width", x.bandwidth)
+      .attr("height", d => y(d.price))
+      .attr("fill", "orange")
+      .attr("x", d => x(d.date))
+    const xAxis = d3.axisBottom(x)
+    const yAxis = d3.axisLeft(y)
+    xAxisGroup.call(xAxis)
+    yAxisGroup.call(yAxis)
+    console.log(data.map(item => item.date))
   }
 
   displayChart(data) {
@@ -58,6 +125,7 @@ class App extends Component {
       .select("svg")
       .attr("height", "600")
       .attr("width", "800")
+    svg.selectAll("*").remove()
 
     let group = svg.append("g").attr("transform", "translate( 50 , 50)")
     let line = d3
@@ -76,6 +144,13 @@ class App extends Component {
   componentDidUpdate(prevProps, prevState) {
     if (prevState.data !== this.state.data) {
       this.displayChart(this.state.data)
+      this.displayBarChart(this.state.data)
+    }
+    if (prevState.isDateChanged !== this.state.isDateChanged) {
+      this.getData()
+      this.setState({
+        isDateChanged: false,
+      })
     }
   }
   componentDidMount() {
@@ -86,6 +161,21 @@ class App extends Component {
     return (
       <div className="canvas">
         <h1> Bitcoin price chart</h1>
+        <div className="select-date">
+          <DatePicker
+            className="date-input"
+            selected={this.state.startDate}
+            onChange={(date, startDate) => this.handleChange(date, "startDate")}
+          />
+          <DatePicker
+            className="date-input"
+            selected={this.state.endDate}
+            onChange={(date, endDate) => this.handleChange(date, "endDate")}
+          />
+          <button onClick={() => this.setState({ isDateChanged: true })}>
+            Enter
+          </button>
+        </div>
         <svg className="line-chart" />
       </div>
     )
